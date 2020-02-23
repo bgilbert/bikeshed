@@ -1,0 +1,1 @@
+SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="13ba", ENV{ID_MODEL_ID}=="0018", OWNER="barserv"

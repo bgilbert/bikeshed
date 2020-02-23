@@ -1,0 +1,21 @@
+[Unit]
+Description=Report barcodes over TCP connections
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/barcode-server /dev/input/by-id/usb-13ba_Barcode_Reader-event-kbd
+User=barserv
+Group=barserv
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateNetwork=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+StandardInput=null
+StandardOutput=null
+StandardError=journal
