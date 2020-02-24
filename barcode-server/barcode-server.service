@@ -1,5 +1,7 @@
 [Unit]
 Description=Report barcodes over TCP connections
+Requires=barcode-server.socket
+After=barcode-server.socket
 
 [Service]
 Type=simple
@@ -19,3 +21,6 @@ RestrictSUIDSGID=true
 StandardInput=null
 StandardOutput=null
 StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
