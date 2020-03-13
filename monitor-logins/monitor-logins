@@ -1,0 +1,120 @@
+#!/var/lib/service/env/bin/python
+#
+# Copyright 2019 Benjamin Gilbert
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from gi.repository import GLib
+from pydbus import SystemBus
+import serial
+import sys
+import time
+
+DISPLAY = (
+    'seat5', None,
+    None, None,
+    'seat1', 'seat4',
+    'seat2', 'seat3',
+)
+FILTER = set(('sddm',))
+
+class LCD:
+    OFFSETS = {
+        0: 0,
+        1: 10,
+        2: 64,
+        3: 74,
+        4: 20,
+        5: 30,
+        6: 84,
+        7: 94,
+    }
+
+    def __init__(self, path):
+        self._path = path
+        self._fh = serial.Serial(path, 9600)
+
+        # Set to 8-bit, 2-line mode
+        for _ in range(3):
+            self._cmd(0x38)
+        # Clear display
+        self._cmd(0x01)
+        # Wait 1.52 ms
+        time.sleep(.002)
+        # Enable backlight
+        self._cmd(0x03)
+        # Set entry mode
+        self._cmd(0x06)
+        # Disable cursor
+        self._cmd(0x0c)
+
+    def _cmd(self, cmd):
+        self._write(bytes([0xfe, cmd]))
+
+    def _write(self, buf):
+        for c in buf:
+            self._fh.write(bytes([c]))
+            # Wait 37 us
+            time.sleep(.00005)
+
+    def draw(self, seats):
+        for i, seat in enumerate(DISPLAY):
+            username = seats.get(seat, '') if seat else ''
+            self._cmd(0x80 | self.OFFSETS[i])
+            self._write('{:9} '.format(username).encode())
+
+
+class TTY:
+    def draw(self, seats):
+        print('=' * 20)
+        for i, seat in enumerate(DISPLAY):
+            username = seats.get(seat, '') if seat else ''
+            print('{:9} '.format(username), end='\n' if i % 2 else '')
+        print('=' * 20)
+
+
+class Seats:
+    def __init__(self, callback):
+        self._callback = callback
+        self._bus = SystemBus()
+        self._logind = self._bus.get('.login1')
+        self._logind.SessionNew.connect(self._change)
+        self._logind.SessionRemoved.connect(self._change)
+
+    def get(self):
+        seats = {}
+        for session in self._logind.ListSessions():
+            sid, uid, username, seat, session_path = session
+            if seat and username not in FILTER:
+                seats[seat] = username
+        return seats
+
+    def _change(self, *_args):
+        self._callback(self.get())
+
+
+def main(port=None):
+    loop = GLib.MainLoop()
+
+    if port is not None:
+        display = LCD(port)
+    else:
+        display = TTY()
+    seats = Seats(display.draw)
+    display.draw(seats.get())
+
+    loop.run()
+
+
+if __name__ == '__main__':
+    main(sys.argv[1] if len(sys.argv) > 1 else None)

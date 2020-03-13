@@ -1,0 +1,2 @@
+# Pertelian X2040 LCD
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A2000eHw", SYMLINK+="X2040", OWNER="service", MODE="600"
