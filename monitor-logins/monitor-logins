@@ -21,7 +21,7 @@ import sys
 import time
 
 DISPLAY = (
-    'seat5', None,
+    None, None,
     None, None,
     'seat1', 'seat4',
     'seat2', 'seat3',
